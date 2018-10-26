@@ -23,6 +23,12 @@ function install_sysbench()
   sudo make install
 }
 
+function new_sysbench_quick_install()
+{
+  curl -s https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | sudo bash
+  sudo apt -y install sysbench
+}
+
 # This function only works for sysbench version: 0.4.12
 function old_sysbench_tests()
 {
@@ -128,9 +134,34 @@ function new_sysbench_tests()
     en=$SECONDS
     
     echo Elapsed Time: $((en-st)) >> $outfile
+  elif [ "$op" = "3" ];then
+    echo -e "\nRunning SQL Benchmark..."
+    rm -rf $outfile
+    
+    echo "Preparing 'sysdb' for benchmarking..."
+    sysbench /usr/share/sysbench/oltp_read_write.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --tables=8 --table-size=1000000 --threads=8 prepare
+    
+    st=$SECONDS
+    # Insert only
+    # sysbench /usr/share/sysbench/oltp_insert.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310 --report-interval=2 --tables=8 --threads=8 --time=60 run
+    
+    # Write only
+    # sysbench /usr/share/sysbench/oltp_write_only.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --report-interval=2 --tables=8 --threads=8 --time=60 run
+    
+    
+    
+    for((th=1; th<=$ncpus; th*=2))
+    do
+      echo "Running SQL Benchmark with TH: $th"
+      sysbench oltp_read_only --threads=$th --mysql-host=10.0.0.126 --mysql-user=<db user> --mysql-password=<your password> #--mysql-port=3306 --tables=10 --table-size=1000000 prepare
+    done
+    en=$SECONDS
   fi
 }
 
 install_sysbench
+# OR
+# new_sysbench_quick_install
+
 
 
