@@ -17,13 +17,14 @@ function install_mysql()
     sudo apt update
 
     echo Installing MySQL...
-    sudo apt install mysql-server
+    sudo apt-get -y install mysql-server
     
     #echo "Now you can check the status of the mysql server using: sudo service mysql status.\n"
     which mysql
     if [ "$?" = "0" ];then
       echo -e "Creating user: 'rakesh' and granting privilages"
-      mysql -u root -p root@123 -e "create user 'rakesh'@'localhost' identified with mysql_native_password by 'rakesh123'; grant all privileges on * . * to 'rakesh'@'localhost';"
+      mysql -u root -p root@123 -e "create user 'rakesh'@'localhost' identified with mysql_native_password by 'rakesh123';"
+      mysql -u root -p root@123 -e "grant all privileges on * . * to 'rakesh'@'localhost';"
       if [ "$?" != "0" ]; then
         echo -e "Error while creating user.\nPlease login to root on nother terminal and run following commands in it:\n"
         echo "create user 'rakesh'@'localhost' identified with mysql_native_password by 'rakesh123';"
@@ -197,7 +198,7 @@ function new_sysbench_tests()
     for((th=1; th<=$ncpus; th+=2))
     do
       echo "Running SQL Read only Benchmark with TH: $th"
-      sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run
+      sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run >> $outfile
     done
     en=$SECONDS
     echo $((en-st)) >> $outfile
