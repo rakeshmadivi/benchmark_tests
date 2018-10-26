@@ -18,8 +18,23 @@ function install_mysql()
 
     echo Installing MySQL...
     sudo apt install mysql-server
+    
+    #echo "Now you can check the status of the mysql server using: sudo service mysql status.\n"
+    which mysql
+    if [ "$?" = "0" ];then
+      echo -e "Creating user: 'rakesh' and granting privilages"
+      mysql -u root -p root@123 -e "create user 'rakesh'@'localhost' identified with mysql_native_password by 'rakesh123'; grant all privileges on * . * to 'rakesh'@'localhost';"
+      if [ "$?" != "0" ]; then
+        echo -e "Error while creating user.\nPlease login to root on nother terminal and run following commands in it:\n"
+        echo "create user 'rakesh'@'localhost' identified with mysql_native_password by 'rakesh123';"
+        echo "grant all privileges on * . * to 'rakesh'@'localhost';"
+        echo "After above commands you can run the sysbench MySQL benchmark.\n"
+        exit
+      fi
+      # mysql -u root -p root@123 -e "grant all privileges on * . * to 'rakesh'@'localhost';"
+    fi
 
-    sudo systemctl status mysql
+    #sudo systemctl status mysql
   fi
 }
 
@@ -166,8 +181,11 @@ function new_sysbench_tests()
     outfile=sysbench_mysql.txt
     rm -rf $outfile
     
+    ntables=10
+    
     echo "Preparing Database for benchmarking..."
-    sysbench /usr/share/sysbench/oltp_read_write.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --tables=8 --table-size=1000000 --threads=8 prepare
+    echo -e "Creating $ntables ..."
+    sysbench oltp_read_write --db-driver=mysql --mysql-user=rakesh --mysql-password=rakesh123 --tables=$ntables --table-size=1000000 --threads=$ntables prepare
     
     st=$SECONDS
     # Insert only
@@ -178,7 +196,7 @@ function new_sysbench_tests()
     
     for((th=1; th<=$ncpus; th+=2))
     do
-      echo "Running SQL Benchmark with TH: $th"
+      echo "Running SQL Read only Benchmark with TH: $th"
       sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run
     done
     en=$SECONDS
