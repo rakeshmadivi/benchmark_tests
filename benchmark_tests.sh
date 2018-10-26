@@ -89,7 +89,7 @@ function old_sysbench_tests()
     st=$SECONDS
     for((mx=$init; mx<=$init*10; mx*=2))
     do
-      for((th=1; th<=$ncpus; th*=2))
+      for((th=2; th<=$ncpus; th*=2))
       do
         echo "\nRunning for PR: $mx TH: $th Configuration"
         echo PR:$mx TH:$th >> $outfile
@@ -113,7 +113,7 @@ function old_sysbench_tests()
     rm -rf $outfile
     
     st=$SECONDS
-    for((th=1; th<=$ncpus; th*=2))
+    for((th=2; th<=$ncpus; th*=2))
     do
         echo "Running with MEMLOAD: $memload, TOTALMEM: $totalmem, THREADS: $th"
         echo TH:$th >> $outfile
@@ -143,7 +143,7 @@ function new_sysbench_tests()
     st=$SECONDS
     for((mx=$init; mx<=$init*10; mx*=2))
     do
-      for((th=1; th<=$ncpus; th+=2))
+      for((th=2; th<=$ncpus; th+=2))
       do
         echo "\nRunning for PR: $mx TH: $th Configuration"
         echo PR:$mx TH:$th >> $outfile
@@ -167,7 +167,7 @@ function new_sysbench_tests()
     rm -rf $outfile
     
     st=$SECONDS
-    for((th=1; th<=$ncpus; th+=2))
+    for((th=2; th<=$ncpus; th+=2))
     do
         echo "Running with MEMLOAD: $memload, TOTALMEM: $totalmem, THREADS: $th"
         echo TH:$th >> $outfile
@@ -195,7 +195,7 @@ function new_sysbench_tests()
     # Write only
     # sysbench /usr/share/sysbench/oltp_write_only.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --report-interval=2 --tables=8 --threads=8 --time=60 run
     
-    for((th=1; th<=$ncpus; th+=2))
+    for((th=2; th<=$ncpus; th+=2))
     do
       echo "Running SQL Read only Benchmark with TH: $th"
       sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run >> $outfile
