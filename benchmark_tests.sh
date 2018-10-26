@@ -170,7 +170,7 @@ function new_sysbench_tests()
     init=10000
     
     # Trying to allocate memory more than L3 Cache and stretch to RAM
-    memload=250M
+    memload=262144K
     totalmem=100G
     
     rm -rf $outfile
@@ -181,7 +181,7 @@ function new_sysbench_tests()
         echo "Running with MEMLOAD: $memload, TOTALMEM: $totalmem, THREADS: $th"
         echo TH:$th >> $outfile
         # --memory-scope=global/local --memory-oper=read/write/none
-        sysbench memory --memory-block-size=$memload --memory-total-size=$totalmem --memory-scope=global --memory-oper=read --num-threads=$th run >> $outfile
+        sysbench memory --memory-block-size=$memload --memory-total-size=$totalmem --memory-scope=global --memory-oper=read --threads=$th run >> $outfile
     done
     en=$SECONDS
     
