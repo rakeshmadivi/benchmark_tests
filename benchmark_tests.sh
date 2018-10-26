@@ -5,16 +5,24 @@ ncpus=`nproc`
 
 function install_mysql()
 {
-  wget https://dev.mysql.com/get/mysql-apt-config_0.8.10-1_all.deb
-  sudo dpkg -i mysql-apt-config*
-  sudo apt update
-  
-  echo Installing MySQL...
-  sudo apt install mysql-server
-  
-  sudo systemctl status mysql
-  
+  #echo -e "Install MySQL?(y/n):\n"
+  #read op
+  which mysql > /dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    echo -e "MySQL Already installed.\n"
+  else
+    echo -e "Installing MySQL..."
+    wget https://dev.mysql.com/get/mysql-apt-config_0.8.10-1_all.deb
+    sudo dpkg -i mysql-apt-config*
+    sudo apt update
+
+    echo Installing MySQL...
+    sudo apt install mysql-server
+
+    sudo systemctl status mysql
+  fi
 }
+
 function install_sysbench()
 {
   apt -y install make automake libtool pkg-config libaio-dev
@@ -37,8 +45,15 @@ function install_sysbench()
 
 function new_sysbench_quick_install()
 {
-  curl -s https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | sudo bash
-  sudo apt -y install sysbench
+  which sysbench > /dev/null 2>&1
+  if [ "$?" = "0" ]; then
+    echo -e "\nSysbench Already installed.\n`sysbench --version`"
+  else
+    echo -e "Installing Sysbench 1.0...\n"
+    sudo apt-get install curl -y
+    curl -s https://packagecloud.io/install/repositories/akopytov/sysbench/script.deb.sh | sudo bash
+    sudo apt-get -y install sysbench
+  fi
 }
 
 # This function only works for sysbench version: 0.4.12
@@ -99,7 +114,7 @@ function old_sysbench_tests()
 function new_sysbench_tests()
 {
   echo which test to perform?
-  echo -e "1. CPU \n2. MEMORY"
+  echo -e "1. CPU \n2. MEMORY \n3. MYSQL"
   echo Enter:
   read op
   if [ "$op" = "1" ]; then
@@ -112,11 +127,11 @@ function new_sysbench_tests()
     st=$SECONDS
     for((mx=$init; mx<=$init*10; mx*=2))
     do
-      for((th=1; th<=$ncpus; th*=2))
+      for((th=1; th<=$ncpus; th+=2))
       do
         echo "\nRunning for PR: $mx TH: $th Configuration"
         echo PR:$mx TH:$th >> $outfile
-        sysbench --test=cpu --cpu-max-prime=$mx --num-threads=$th run >> $outfile
+        sysbench cpu --cpu-max-prime=$mx --threads=$th run >> $outfile
       done
     done
     en=$SECONDS
@@ -136,21 +151,22 @@ function new_sysbench_tests()
     rm -rf $outfile
     
     st=$SECONDS
-    for((th=1; th<=$ncpus; th*=2))
+    for((th=1; th<=$ncpus; th+=2))
     do
         echo "Running with MEMLOAD: $memload, TOTALMEM: $totalmem, THREADS: $th"
         echo TH:$th >> $outfile
         # --memory-scope=global/local --memory-oper=read/write/none
-        sysbench --test=memory --memory-block-size=$memload --memory-total-size=$totalmem --memory-scope=global --memory-oper=read --num-threads=$th run >> $outfile
+        sysbench memory --memory-block-size=$memload --memory-total-size=$totalmem --memory-scope=global --memory-oper=read --num-threads=$th run >> $outfile
     done
     en=$SECONDS
     
     echo Elapsed Time: $((en-st)) >> $outfile
   elif [ "$op" = "3" ];then
     echo -e "\nRunning SQL Benchmark..."
+    outfile=sysbench_mysql.txt
     rm -rf $outfile
     
-    echo "Preparing 'sysdb' for benchmarking..."
+    echo "Preparing Database for benchmarking..."
     sysbench /usr/share/sysbench/oltp_read_write.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --tables=8 --table-size=1000000 --threads=8 prepare
     
     st=$SECONDS
@@ -160,13 +176,14 @@ function new_sysbench_tests()
     # Write only
     # sysbench /usr/share/sysbench/oltp_write_only.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --report-interval=2 --tables=8 --threads=8 --time=60 run
     
-    for((th=1; th<=$ncpus; th*=2))
+    for((th=1; th<=$ncpus; th+=2))
     do
       echo "Running SQL Benchmark with TH: $th"
-      sysbench oltp_read_only --threads=$th --mysql-host=10.0.0.126 --mysql-user=<db user> --mysql-password=<your password> 
-      #--mysql-port=3306 --tables=10 --table-size=1000000 prepare
+      sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run
     done
     en=$SECONDS
+    echo $((en-st)) >> $outfile
+    
   fi
 }
 
@@ -175,5 +192,7 @@ install_mysql
 # OR
 new_sysbench_quick_install
 
-
+# Before running Sysbench test
+# create a user in mysql and use legacy password authentication method with following command
+# Ex: CREATE USER 'username’@‘localhost’ IDENTIFIED WITH mysql_native_password BY ‘password’;
 
