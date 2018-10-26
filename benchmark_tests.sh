@@ -3,6 +3,18 @@
 # GLOBAL VALUES
 ncpus=`nproc`
 
+function install_mysql()
+{
+  wget https://dev.mysql.com/get/mysql-apt-config_0.8.10-1_all.deb
+  sudo dpkg -i mysql-apt-config*
+  sudo apt update
+  
+  echo Installing MySQL...
+  sudo apt install mysql-server
+  
+  sudo systemctl status mysql
+  
+}
 function install_sysbench()
 {
   apt -y install make automake libtool pkg-config libaio-dev
@@ -148,20 +160,20 @@ function new_sysbench_tests()
     # Write only
     # sysbench /usr/share/sysbench/oltp_write_only.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --report-interval=2 --tables=8 --threads=8 --time=60 run
     
-    
-    
     for((th=1; th<=$ncpus; th*=2))
     do
       echo "Running SQL Benchmark with TH: $th"
-      sysbench oltp_read_only --threads=$th --mysql-host=10.0.0.126 --mysql-user=<db user> --mysql-password=<your password> #--mysql-port=3306 --tables=10 --table-size=1000000 prepare
+      sysbench oltp_read_only --threads=$th --mysql-host=10.0.0.126 --mysql-user=<db user> --mysql-password=<your password> 
+      #--mysql-port=3306 --tables=10 --table-size=1000000 prepare
     done
     en=$SECONDS
   fi
 }
 
-install_sysbench
+install_mysql
+#install_sysbench
 # OR
-# new_sysbench_quick_install
+new_sysbench_quick_install
 
 
 
