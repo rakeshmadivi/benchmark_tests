@@ -213,4 +213,4 @@ new_sysbench_quick_install
 # Before running Sysbench test
 # create a user in mysql and use legacy password authentication method with following command
 # Ex: CREATE USER 'username’@‘localhost’ IDENTIFIED WITH mysql_native_password BY ‘password’;
-
+new_sysbench_tests
