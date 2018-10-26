@@ -206,6 +206,48 @@ function new_sysbench_tests()
   fi
 }
 
+# FOR NGINX TEST 1. Install wrk; 2. install NGINX
+# INSTALLING WRK
+function install_wrk()
+{
+  echo -e "\nINSTALLING wrk...\n"
+  sudo apt-get install build-essential libssl-dev git -y
+  git clone https://github.com/wg/wrk.git wrk
+  cd wrk
+  make -j`nproc`
+  
+  # move the executable to somewhere in your PATH, ex:
+  sudo cp wrk /usr/local/bin
+}
+
+# INSTALLING NGINX
+function install_nginx()
+{
+  echo -e "\nINSTALLING NGINX...\n"
+  # GET PGP Key for NGINX to eliminate warnings during installation
+  wget http://nginx.org/keys/nginx_signing.key
+  
+  # ADD THE KEY TO APT
+  sudo apt-key add nginx_signing.key
+  
+  # ADD SOURCES LIST TO THE APT SOURCES LIST
+  # Code name for Debian 4.9 is stretch
+  sudo echo "deb http://nginx.org/packages/mainline/debian/ stretch nginx" >> /etc/apt/sources.list
+  sudo echo "deb-src http://nginx.org/packages/mainline/debian/ stretch nginx" >> /etc/apt/sources.list
+  
+  # UPDATE AND INSTALL NGINX
+  sudo apt-get update
+  sudo apt-get install nginx
+}
+
+function nginx_tests()
+{
+  # REFERENCE: https://github.com/wg/wrk
+  # EX: wrk -t12 -c400 -d30s http://127.0.0.1:8080/index.html
+  # Runs a benchmark for 30 seconds, using 12 threads, and keeping 400 HTTP connections open.
+  wrk -t12 -c400 -d30s http://127.0.0.1:8080/index.html
+}
+
 install_mysql
 #install_sysbench
 # OR
