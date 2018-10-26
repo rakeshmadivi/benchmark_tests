@@ -133,8 +133,12 @@ function new_sysbench_tests()
   echo -e "1. CPU \n2. MEMORY \n3. MYSQL"
   echo Enter:
   read op
+  
   if [ "$op" = "1" ]; then
-    echo Running CPU Workload Benchmark...
+    
+    # SYSBENCH CPU TEST
+    
+    echo -e "Running CPU Workload Benchmark..."
     outfile=sysbench_cpu.txt
     init=10000
     
@@ -145,17 +149,22 @@ function new_sysbench_tests()
     do
       for((th=2; th<=$ncpus; th+=2))
       do
-        echo "\nRunning for PR: $mx TH: $th Configuration"
+        echo -e "\nRunning for PR: $mx TH: $th Configuration"
         echo PR:$mx TH:$th >> $outfile
         sysbench cpu --cpu-max-prime=$mx --threads=$th run >> $outfile
       done
     done
-    en=$SECONDS
-    
+    en=$SECONDS   
     echo Elapsed Time: $((en-st)) >> $outfile
     
+    # NEXT TRY TASKSET TO PIN PROCESSES/THREADS TO PROCESSORS/LOGICAL PROCESSORS
+    
+    
   elif [ "$op" = "2" ]; then
-    echo Running MEMORY Workload Benchmark...
+    
+    # SYSBENCH MEMORY TEST
+    
+    echo -e "Running MEMORY Workload Benchmark..."
     outfile=sysbench_memory.txt
     
     init=10000
@@ -178,6 +187,9 @@ function new_sysbench_tests()
     
     echo Elapsed Time: $((en-st)) >> $outfile
   elif [ "$op" = "3" ];then
+    
+    # SYSBENCH MYSQL TEST
+    
     echo -e "\nRunning SQL Benchmark..."
     outfile=sysbench_mysql.txt
     rm -rf $outfile
@@ -202,7 +214,8 @@ function new_sysbench_tests()
     done
     en=$SECONDS
     echo $((en-st)) >> $outfile
-    
+  else
+    echo -e "\nNO TEST SELECTED FOR SYSBENCH.\n"
   fi
 }
 
@@ -248,12 +261,25 @@ function nginx_tests()
   wrk -t12 -c400 -d30s http://127.0.0.1:8080/index.html
 }
 
+# INSTALL MYSQL
+# -------------
 install_mysql
+
+# INSTALL SYSBENCH
+# -------------
 #install_sysbench
 # OR
 new_sysbench_quick_install
 
+# SYSBENCH TESTS
+#---------------
 # Before running Sysbench test
 # create a user in mysql and use legacy password authentication method with following command
 # Ex: CREATE USER 'username’@‘localhost’ IDENTIFIED WITH mysql_native_password BY ‘password’;
 new_sysbench_tests
+
+# INSTALL WRK & NGINX; TEST NGINX
+# -------------------------------
+install_wrk
+install_nginx
+nginx_tests
