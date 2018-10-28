@@ -284,6 +284,21 @@ function nginx_tests()
   echo -e "ELAPSED TIME: $((en-st))" >> $outfile
 }
 
+# INSTALLING TINYMEMBENCH
+function install_tinymembench()
+{
+  echo -e "\nInstalling tinymembench...\n"
+  git clone --recursive https://github.com/ssvb/tinymembench.git
+  ch tinymembench
+  make -j8
+  # OR CFLAGS="-O2 -march=atom -mtune=atom"
+}
+
+function tinymembench_tests()
+{
+  
+}
+
 # INSTALL MYSQL
 # -------------
 install_mysql
