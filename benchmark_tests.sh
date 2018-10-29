@@ -270,9 +270,9 @@ function nginx_tests()
   echo -e "\nRunning nginx Benchmark...\n"
   outfile=nginx_benchmark.txt
   st=$SECONDS
-  for((con=0;con<=10000000;con+=10))
+  for((con=0;con<=10000000;con+=1000000))
   do
-    for((th=0;th<=$ncpus;th+=2))
+    for((th=0;th<=$ncpus;th+=10))
     do
       echo -e "\nRunning CON: $con TH: $th Configuration\n"
       echo -e "\n==== CON: $con TH: $th ====\n" >> $outfile
@@ -302,23 +302,23 @@ function tinymembench_tests()
 
 # INSTALL MYSQL
 # -------------
-install_mysql
+#install_mysql
 
 # INSTALL SYSBENCH
 # -------------
 #install_sysbench
 # OR
-new_sysbench_quick_install
+#new_sysbench_quick_install
 
 # SYSBENCH TESTS
 #---------------
 # Before running Sysbench test
 # create a user in mysql and use legacy password authentication method with following command
 # Ex: CREATE USER 'username’@‘localhost’ IDENTIFIED WITH mysql_native_password BY ‘password’;
-new_sysbench_tests
+#new_sysbench_tests
 
 # INSTALL WRK & NGINX; TEST NGINX
 # -------------------------------
-install_wrk
-install_nginx
+#install_wrk
+#install_nginx
 nginx_tests
