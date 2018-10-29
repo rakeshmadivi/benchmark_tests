@@ -277,7 +277,7 @@ function nginx_tests()
       echo -e "\nRunning CON: $con TH: $th Configuration\n"
       echo -e "\n==== CON: $con TH: $th ====\n" >> $outfile
       #wrk -t$th -c$con -d30s http://localhost:${nginx_port}/index.nginx-debian.html >> $outfile
-      ab -c $th -n $con -t 60 -g ${con}_${th}_ab_benchmark_gnuplot -e ${con}_${th}_ab_benchmark.csv http://localhost:${nginx_port}/index.nginx-debian.html >> outfile
+      ab -c $th -n $con -t 60 -g ${con}n_${th}c_ab_benchmark_gnuplot -e ${con}_${th}_ab_benchmark.csv http://localhost:${nginx_port}/index.nginx-debian.html >> outfile
     done   
   done
   en=$SECONDS
