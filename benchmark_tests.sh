@@ -295,30 +295,90 @@ function install_tinymembench()
   # OR CFLAGS="-O2 -march=atom -mtune=atom"
 }
 
+# CACHE TEST TINYMEMBENCH
 function tinymembench_tests()
 {
-  
+  echo "Implement"
 }
 
-# INSTALL MYSQL
-# -------------
-#install_mysql
+function stream_tests()
+{
+  location=`locate multi-streaam-scaling`
+  
+  if [ "$location" != "" ];then
+    echo -e "\nError: multi-stream-scaling is not found. Please install and re-run.\n"
+  else
+    outfile=stream_scaling_benchmark.txt
+    iters=4
+    testname=stream_scale_${iters}iters
+    $location $iters  $testname
+    ./multi-averager $testname > stream.txt
+    if [ "`which gnuplot`" != "" ];then
+      echo -e "Plotting Triad..."
+      gnuplot stream-plot
+      echo -e "\nNOTE: If you want to plot for 'Scale', please edit find parameter to 'Scale' in stream-graph.py and re-run 'multi-averager'\n"
+    fi
+    
+  fi
+}
 
-# INSTALL SYSBENCH
-# -------------
-#install_sysbench
-# OR
-#new_sysbench_quick_install
+# REDIS TEST
+function redis_tests()
+{
+  which redis-benchmark > /dev/null 2>&1
+  if [ "$?" != "0" ];then
+    echo -e "\nError: redis-benchmark is not installed. Please install and re-run.\n"
+  else
+    outfile=redis_benchmark.txt
+    rm -rf $outfile
+    echo -e "`lscpu | grep Model`" >> $outfile
+    for((req=1000000; req<=100000000; req+=10000000))
+    do
+      for((par_c=10; par_c<=$ncpus; par_c+=10))
+      do
+        echo -e "\nRunning: ==== ${par_c}C_${req}N ===="
+        echo -e "\n==== ${par_c}C_${req}N ====" >> $outfile
+
+        st=$SECONDS
+        redis-benchmark -n $req -c $par_c -q >> $outfile
+        en=$SECONDS
+        echo -e "Elapsed Time: $((en-st)) Seconds." >> $outfile
+      done
+    done
+   fi
+}
+
+function install()
+{
+  # INSTALL MYSQL
+  # -------------
+  install_mysql
+
+  # INSTALL SYSBENCH
+  # -------------
+  #install_sysbench
+  # OR
+  new_sysbench_quick_install
+
+  # INSTALL WRK & NGINX; TEST NGINX
+  # -------------------------------
+  install_wrk
+  install_nginx
+}
 
 # SYSBENCH TESTS
 #---------------
 # Before running Sysbench test
 # create a user in mysql and use legacy password authentication method with following command
 # Ex: CREATE USER 'username’@‘localhost’ IDENTIFIED WITH mysql_native_password BY ‘password’;
+
 #new_sysbench_tests
 
-# INSTALL WRK & NGINX; TEST NGINX
-# -------------------------------
-#install_wrk
-#install_nginx
-nginx_tests
+# NGINX TESTS
+#nginx_tests
+
+# STREAM TESTS
+#stream_tests
+
+# REDIS TESTS
+redis_tests
