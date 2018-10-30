@@ -348,6 +348,20 @@ function redis_tests()
    fi
 }
 
+# SPEC
+function speccpu_tests()
+{
+  cfgfile=$1
+  copies=`nproc`
+  echo -e "\nUSING: $cfgfile\n"
+  time runcpu -c $cfgfile --tune=base --copies=$copies --threads=1 --reportable intrate
+}
+
+function specjbb_tests()
+{
+  echo "OOPS... Yet to implement!!!\n"
+}
+
 function install()
 {
   # INSTALL MYSQL
@@ -365,6 +379,8 @@ function install()
   install_wrk
   install_nginx
 }
+
+speccpu_tests
 
 # SYSBENCH TESTS
 #---------------
