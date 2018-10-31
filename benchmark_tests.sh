@@ -2,7 +2,7 @@
 
 # GLOBAL VALUES
 ncpus=`nproc`
-
+th_per_core=$(echo `lscpu | grep Thread|cut -f2 -d':'`)
 function install_mysql()
 {
   #echo -e "Install MySQL?(y/n):\n"
@@ -404,7 +404,7 @@ function speccpu_tests()
 {
   speccpu_home=$HOME/spec2017_install/
   cfgfile=$1
-  copies=`nproc`
+  copies=$ncpus
   threads=1
   echo -e "\nUSING: $cfgfile\n"
   cd $speccpu_home/
@@ -416,14 +416,15 @@ function speccpu_tests()
   do
     if [ "$i" = "intspeed" ]; then
       copies=1
-      threads=2
+      threads=$th_per_core
     fi
     if [ "$i" = "fpspeed" ]; then
       copies=1
-      threads=2
+      threads=$th_per_core
     fi
     
     echo -e "Running $i with CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
+    sleep 3
     which runcpu
     if [ "$?" = "0" ];then
       st=$SECONDS
