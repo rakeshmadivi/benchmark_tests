@@ -298,7 +298,22 @@ function install_tinymembench()
 # CACHE TEST TINYMEMBENCH
 function tinymembench_tests()
 {
-  echo "Implement"
+  outfile=tinymembench_benchmark.txt
+  rm -rf $outfile
+  
+  if [ ! -d "$HOME/tinymembench" ];then
+    echo "\n'tinymembech' folder could not found in $HOME folder... Downloading tinymembench...\n"
+    git clone --recursive https://github.com/ssvb/tinymembench
+    export tinymem_loc=$PWD/tinymembench
+    cd $tinymem_loc
+    make -j`nproc`
+  else
+    cd $HOME/tinymembench
+  fi
+  st=$SECONDS
+  ./tinymembench >> $outfile
+  en=$SECONDS
+  echo -e "Elapsed time: $((en-st)) Seconds."
 }
 
 function stream_tests()
@@ -307,6 +322,8 @@ function stream_tests()
   
   if [ "$location" != "" ];then
     echo -e "\nError: multi-stream-scaling is not found. Please install and re-run.\n"
+    # git clone --recursive https://github.com/jainmjo/stream-scaling.git
+    # cd stream-scaling
   else
     outfile=stream_scaling_benchmark.txt
     iters=4
@@ -332,7 +349,7 @@ function redis_tests()
     outfile=redis_benchmark.txt
     rm -rf $outfile
     echo -e "`lscpu | grep Model`" >> $outfile
-    for((req=1000000; req<=100000000; req+=10000000))
+    for((req=1000000; req<=100000000; req+=40000000))
     do
       for((par_c=10; par_c<=$ncpus; par_c+=10))
       do
@@ -351,15 +368,54 @@ function redis_tests()
 # SPEC
 function speccpu_tests()
 {
+  speccpu_home=$HOME/spec2017_install/
   cfgfile=$1
   copies=`nproc`
+  threads=1
   echo -e "\nUSING: $cfgfile\n"
-  time runcpu -c $cfgfile --tune=base --copies=$copies --threads=1 --reportable intrate
-}
+  source $speccpu_home/shrc
+  cd $speccpu_home/config
+  
+  declare -a spectests=("intrate" "intspeed" "fprate" "fpspeed")
+  for i in "${spectests[@]}"
+  do
+    if [ "$i" = "intspeed" ]; then
+      copies=1
+      threads=2
+    fi
+    if [ "$i" = "fpspeed" ]; then
+      copies=1
+      threads=2
+    fi
+    
+    echo -e "Running $i with CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
+    which runcpu
+    if [ "$?" = "0" ];then
+      st=$SECONDS
+        time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
+      en=$SECONDS
+      echo -e "${i} : Elapsed time - $((en-st)) Seconds."
+    else
+      echo -e "ERROR:  runcpu command not found. Please install/source required script to continue with tests.\n"
+    fi
+  }
 
 function specjbb_tests()
 {
-  echo "OOPS... Yet to implement!!!\n"
+  specjbb_home=$HOME/specjbb15
+  echo -e "Want to run SPECJBB Test?(y/n)"
+  read op
+  if [ "$op" = "n" ];then
+    echo -e "SPECJBB Test Cancelled by user.\nExiting...\n"
+    exit
+  else
+    cd $specjbb_home
+    echo -e "Are you sure configuration parameters are properly set?"
+    read op
+    if [ "op" = "y" ];then
+      sudo ./run_multi.sh
+    fi
+  fi
 }
 
 function install()
@@ -381,6 +437,7 @@ function install()
 }
 
 speccpu_tests
+specjbb_tests
 
 # SYSBENCH TESTS
 #---------------
