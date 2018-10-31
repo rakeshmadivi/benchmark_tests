@@ -129,93 +129,100 @@ function old_sysbench_tests()
 # This function only works for sysbench version: 1.0
 function new_sysbench_tests()
 {
-  echo which test to perform?
-  echo -e "1. CPU \n2. MEMORY \n3. MYSQL"
-  echo Enter:
+  echo -e "Do you want to run SYSBNECH-1.0 test?(y/n)"
   read op
   
-  if [ "$op" = "1" ]; then
-    
-    # SYSBENCH CPU TEST
-    
-    echo -e "Running CPU Workload Benchmark..."
-    outfile=sysbench_cpu.txt
-    init=10000
-    
-     rm -rf $outfile
-    
-    st=$SECONDS
-    for((mx=$init; mx<=$init*10; mx*=2))
-    do
+  if [ "$op" = "y" ];then
+    echo which test to perform?
+    echo -e "1. CPU \n2. MEMORY \n3. MYSQL"
+    echo Enter:
+    read op
+
+    if [ "$op" = "1" ]; then
+
+      # SYSBENCH CPU TEST
+
+      echo -e "Running CPU Workload Benchmark..."
+      outfile=sysbench_cpu.txt
+      init=10000
+
+       rm -rf $outfile
+
+      st=$SECONDS
+      for((mx=$init; mx<=$init*10; mx*=2))
+      do
+        for((th=2; th<=$ncpus; th+=2))
+        do
+          echo -e "\nRunning for PR: $mx TH: $th Configuration"
+          echo PR:$mx TH:$th >> $outfile
+          sysbench cpu --cpu-max-prime=$mx --threads=$th run >> $outfile
+        done
+      done
+      en=$SECONDS   
+      echo Elapsed Time: $((en-st)) >> $outfile
+
+      # NEXT TRY TASKSET TO PIN PROCESSES/THREADS TO PROCESSORS/LOGICAL PROCESSORS
+
+
+    elif [ "$op" = "2" ]; then
+
+      # SYSBENCH MEMORY TEST
+
+      echo -e "Running MEMORY Workload Benchmark..."
+      outfile=sysbench_memory.txt
+
+      init=10000
+
+      # Trying to allocate memory more than L3 Cache and stretch to RAM
+      memload=262144K
+      totalmem=100G
+
+      rm -rf $outfile
+
+      st=$SECONDS
       for((th=2; th<=$ncpus; th+=2))
       do
-        echo -e "\nRunning for PR: $mx TH: $th Configuration"
-        echo PR:$mx TH:$th >> $outfile
-        sysbench cpu --cpu-max-prime=$mx --threads=$th run >> $outfile
+          echo "Running with MEMLOAD: $memload, TOTALMEM: $totalmem, THREADS: $th"
+          echo TH:$th >> $outfile
+          # --memory-scope=global/local --memory-oper=read/write/none
+          sysbench memory --memory-block-size=$memload --memory-total-size=$totalmem --memory-scope=global --memory-oper=read --threads=$th run >> $outfile
       done
-    done
-    en=$SECONDS   
-    echo Elapsed Time: $((en-st)) >> $outfile
-    
-    # NEXT TRY TASKSET TO PIN PROCESSES/THREADS TO PROCESSORS/LOGICAL PROCESSORS
-    
-    
-  elif [ "$op" = "2" ]; then
-    
-    # SYSBENCH MEMORY TEST
-    
-    echo -e "Running MEMORY Workload Benchmark..."
-    outfile=sysbench_memory.txt
-    
-    init=10000
-    
-    # Trying to allocate memory more than L3 Cache and stretch to RAM
-    memload=262144K
-    totalmem=100G
-    
-    rm -rf $outfile
-    
-    st=$SECONDS
-    for((th=2; th<=$ncpus; th+=2))
-    do
-        echo "Running with MEMLOAD: $memload, TOTALMEM: $totalmem, THREADS: $th"
-        echo TH:$th >> $outfile
-        # --memory-scope=global/local --memory-oper=read/write/none
-        sysbench memory --memory-block-size=$memload --memory-total-size=$totalmem --memory-scope=global --memory-oper=read --threads=$th run >> $outfile
-    done
-    en=$SECONDS
-    
-    echo Elapsed Time: $((en-st)) >> $outfile
-  elif [ "$op" = "3" ];then
-    
-    # SYSBENCH MYSQL TEST
-    
-    echo -e "\nRunning SQL Benchmark..."
-    outfile=sysbench_mysql.txt
-    rm -rf $outfile
-    
-    ntables=10
-    
-    echo "Preparing Database for benchmarking..."
-    echo -e "Creating $ntables ..."
-    sysbench oltp_read_write --db-driver=mysql --mysql-user=rakesh --mysql-password=rakesh123 --tables=$ntables --table-size=1000000 --threads=$ntables prepare
-    
-    st=$SECONDS
-    # Insert only
-    # sysbench /usr/share/sysbench/oltp_insert.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310 --report-interval=2 --tables=8 --threads=8 --time=60 run
-    
-    # Write only
-    # sysbench /usr/share/sysbench/oltp_write_only.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --report-interval=2 --tables=8 --threads=8 --time=60 run
-    
-    for((th=2; th<=$ncpus; th+=2))
-    do
-      echo "Running SQL Read only Benchmark with TH: $th"
-      sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run >> $outfile
-    done
-    en=$SECONDS
-    echo $((en-st)) >> $outfile
+      en=$SECONDS
+
+      echo Elapsed Time: $((en-st)) >> $outfile
+    elif [ "$op" = "3" ];then
+
+      # SYSBENCH MYSQL TEST
+
+      echo -e "\nRunning SQL Benchmark..."
+      outfile=sysbench_mysql.txt
+      rm -rf $outfile
+
+      ntables=10
+
+      echo "Preparing Database for benchmarking..."
+      echo -e "Creating $ntables ..."
+      sysbench oltp_read_write --db-driver=mysql --mysql-user=rakesh --mysql-password=rakesh123 --tables=$ntables --table-size=1000000 --threads=$ntables prepare
+
+      st=$SECONDS
+      # Insert only
+      # sysbench /usr/share/sysbench/oltp_insert.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310 --report-interval=2 --tables=8 --threads=8 --time=60 run
+
+      # Write only
+      # sysbench /usr/share/sysbench/oltp_write_only.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --report-interval=2 --tables=8 --threads=8 --time=60 run
+
+      for((th=2; th<=$ncpus; th+=2))
+      do
+        echo "Running SQL Read only Benchmark with TH: $th"
+        sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run >> $outfile
+      done
+      en=$SECONDS
+      echo $((en-st)) >> $outfile
+    else
+      echo -e "\nNO TEST SELECTED FOR SYSBENCH.\n"
+    fi
   else
-    echo -e "\nNO TEST SELECTED FOR SYSBENCH.\n"
+    echo -e "SYSBENCH TEST Cancelled by user...\n"
   fi
 }
 
@@ -260,29 +267,36 @@ function install_nginx()
 
 function nginx_tests()
 {
-  # REFERENCE: https://github.com/wg/wrk
-  # EX: wrk -t12 -c400 -d30s http://127.0.0.1:8080/index.html
-  # Runs a benchmark for 30 seconds, using 12 threads, and keeping 400 HTTP connections open.
+  echo -e "Do you want to run NGINX test?(y/n)"
+  read op
   
-  # CHECK IF NGINX IS RUNNING ON PORT 80; IF NOT SET FOLLOWING PORT TO RESPECTIVE PORT NUMBER
-  nginx_port=80
-  
-  echo -e "\nRunning nginx Benchmark...\n"
-  outfile=nginx_benchmark.txt
-  st=$SECONDS
-  for((con=0;con<=10000000;con+=1000000))
-  do
-    for((th=0;th<=$ncpus;th+=10))
+  if [ "$op" = "y" ];then
+    # REFERENCE: https://github.com/wg/wrk
+    # EX: wrk -t12 -c400 -d30s http://127.0.0.1:8080/index.html
+    # Runs a benchmark for 30 seconds, using 12 threads, and keeping 400 HTTP connections open.
+
+    # CHECK IF NGINX IS RUNNING ON PORT 80; IF NOT SET FOLLOWING PORT TO RESPECTIVE PORT NUMBER
+    nginx_port=80
+
+    echo -e "\nRunning nginx Benchmark...\n"
+    outfile=nginx_benchmark.txt
+    st=$SECONDS
+    for((con=0;con<=10000000;con+=1000000))
     do
-      echo -e "\nRunning CON: $con TH: $th Configuration\n"
-      echo -e "\n==== CON: $con TH: $th ====\n" >> $outfile
-      #wrk -t$th -c$con -d30s http://localhost:${nginx_port}/index.nginx-debian.html >> $outfile
-      ab -c $th -n $con -t 60 -g ${con}n_${th}c_ab_benchmark_gnuplot -e ${con}_${th}_ab_benchmark.csv http://localhost:${nginx_port}/index.nginx-debian.html >> outfile
-    done   
-  done
-  en=$SECONDS
-  
-  echo -e "ELAPSED TIME: $((en-st))" >> $outfile
+      for((th=0;th<=$ncpus;th+=10))
+      do
+        echo -e "\nRunning CON: $con TH: $th Configuration\n"
+        echo -e "\n==== CON: $con TH: $th ====\n" >> $outfile
+        #wrk -t$th -c$con -d30s http://localhost:${nginx_port}/index.nginx-debian.html >> $outfile
+        ab -c $th -n $con -t 60 -g ${con}n_${th}c_ab_benchmark_gnuplot -e ${con}_${th}_ab_benchmark.csv http://localhost:${nginx_port}/index.nginx-debian.html >> outfile
+      done   
+    done
+    en=$SECONDS
+
+    echo -e "ELAPSED TIME: $((en-st))" >> $outfile
+  else
+    echo -e "NGINX TEST Cancelled by user...\n"
+  fi
 }
 
 # INSTALLING TINYMEMBENCH
@@ -298,70 +312,90 @@ function install_tinymembench()
 # CACHE TEST TINYMEMBENCH
 function tinymembench_tests()
 {
-  outfile=tinymembench_benchmark.txt
-  rm -rf $outfile
+  echo -e "Do you want to run stream test?(y/n)"
+  read op
   
-  if [ ! -d "$HOME/tinymembench" ];then
-    echo "\n'tinymembech' folder could not found in $HOME folder... Downloading tinymembench...\n"
-    git clone --recursive https://github.com/ssvb/tinymembench
-    export tinymem_loc=$PWD/tinymembench
-    cd $tinymem_loc
-    make -j`nproc`
+  if [ "$op" = "y" ];then
+    outfile=tinymembench_benchmark.txt
+    rm -rf $outfile
+
+    if [ ! -d "$HOME/tinymembench" ];then
+      echo "\n'tinymembech' folder could not found in $HOME folder... Downloading tinymembench...\n"
+      git clone --recursive https://github.com/ssvb/tinymembench
+      export tinymem_loc=$PWD/tinymembench
+      cd $tinymem_loc
+      make -j`nproc`
+    else
+      cd $HOME/tinymembench
+    fi
+    st=$SECONDS
+    ./tinymembench >> $outfile
+    en=$SECONDS
+    echo -e "Elapsed time: $((en-st)) Seconds."
   else
-    cd $HOME/tinymembench
+    echo -e "TINYMEMBENCH TEST Cancelled by user...\n"
   fi
-  st=$SECONDS
-  ./tinymembench >> $outfile
-  en=$SECONDS
-  echo -e "Elapsed time: $((en-st)) Seconds."
 }
 
 function stream_tests()
 {
-  location=`locate multi-streaam-scaling`
+  echo -e "Do you want to run stream test?(y/n)"
+  read op
   
-  if [ "$location" != "" ];then
-    echo -e "\nError: multi-stream-scaling is not found. Please install and re-run.\n"
-    # git clone --recursive https://github.com/jainmjo/stream-scaling.git
-    # cd stream-scaling
-  else
-    outfile=stream_scaling_benchmark.txt
-    iters=4
-    testname=stream_scale_${iters}iters
-    $location $iters  $testname
-    ./multi-averager $testname > stream.txt
-    if [ "`which gnuplot`" != "" ];then
-      echo -e "Plotting Triad..."
-      gnuplot stream-plot
-      echo -e "\nNOTE: If you want to plot for 'Scale', please edit find parameter to 'Scale' in stream-graph.py and re-run 'multi-averager'\n"
+  if [ "$op" = "y" ];then
+    location=`locate multi-streaam-scaling`
+    if [ "$location" != "" ];then
+      echo -e "\nError: multi-stream-scaling is not found. Please install and re-run.\n"
+      # git clone --recursive https://github.com/jainmjo/stream-scaling.git
+      # cd stream-scaling
+    else
+      outfile=stream_scaling_benchmark.txt
+      iters=4
+      testname=stream_scale_${iters}iters
+      $location $iters  $testname
+      ./multi-averager $testname > stream.txt
+      if [ "`which gnuplot`" != "" ];then
+        echo -e "Plotting Triad..."
+        gnuplot stream-plot
+        echo -e "\nNOTE: If you want to plot for 'Scale', please edit find parameter to 'Scale' in stream-graph.py and re-run 'multi-averager'\n"
+      fi
+
     fi
-    
+  else
+    echo -e "STREAM TEST Cancelled by user...\n"
   fi
 }
 
 # REDIS TEST
 function redis_tests()
 {
-  which redis-benchmark > /dev/null 2>&1
-  if [ "$?" != "0" ];then
-    echo -e "\nError: redis-benchmark is not installed. Please install and re-run.\n"
-  else
-    outfile=redis_benchmark.txt
-    rm -rf $outfile
-    echo -e "`lscpu | grep Model`" >> $outfile
-    for((req=1000000; req<=100000000; req+=40000000))
-    do
-      for((par_c=10; par_c<=$ncpus; par_c+=10))
+  echo -e "Do you want to run redis test?(y/n)"
+  read op
+  
+  if [ "$op" = "y" ];then
+    which redis-benchmark > /dev/null 2>&1
+    if [ "$?" != "0" ];then
+      echo -e "\nError: redis-benchmark is not installed. Please install and re-run.\n"
+    else
+      outfile=redis_benchmark.txt
+      rm -rf $outfile
+      echo -e "`lscpu | grep Model`" >> $outfile
+      for((req=1000000; req<=100000000; req+=50000000))
       do
-        echo -e "\nRunning: ==== ${par_c}C_${req}N ===="
-        echo -e "\n==== ${par_c}C_${req}N ====" >> $outfile
+        for((par_c=10; par_c<=$ncpus; par_c+=10))
+        do
+          echo -e "\nRunning: ==== ${par_c}C_${req}N ===="
+          echo -e "\n==== ${par_c}C_${req}N ====" >> $outfile
 
-        st=$SECONDS
-        redis-benchmark -n $req -c $par_c -q >> $outfile
-        en=$SECONDS
-        echo -e "Elapsed Time: $((en-st)) Seconds." >> $outfile
+          st=$SECONDS
+          redis-benchmark -n $req -c $par_c -q >> $outfile
+          en=$SECONDS
+          echo -e "Elapsed Time: $((en-st)) Seconds." >> $outfile
+        done
       done
-    done
+     fi
+   else
+    echo -e "REDIS TEST Cancelled by user...\n"
    fi
 }
 
@@ -373,8 +407,9 @@ function speccpu_tests()
   copies=`nproc`
   threads=1
   echo -e "\nUSING: $cfgfile\n"
+  cd $speccpu_home/
   source $speccpu_home/shrc
-  cd $speccpu_home/config
+  cd config
   
   declare -a spectests=("intrate" "intspeed" "fprate" "fpspeed")
   for i in "${spectests[@]}"
@@ -398,6 +433,7 @@ function speccpu_tests()
     else
       echo -e "ERROR:  runcpu command not found. Please install/source required script to continue with tests.\n"
     fi
+  done
   }
 
 function specjbb_tests()
