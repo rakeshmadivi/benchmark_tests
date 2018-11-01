@@ -406,6 +406,9 @@ function speccpu_tests()
   cfgfile=$1
   copies=$ncpus
   threads=1
+  
+  stack_size=`ulimit -s`
+  stack_msg="\nNOTE: Stack Size is lesser than required limit. You might want to increase limit else you might experience cam4_s failure.\n"
   echo -e "\nUSING: $cfgfile\n"
   cd $speccpu_home/
   source $speccpu_home/shrc
@@ -414,13 +417,20 @@ function speccpu_tests()
   declare -a spectests=("intrate" "intspeed" "fprate" "fpspeed")
   for i in "${spectests[@]}"
   do
+    
     if [ "$i" = "intspeed" ]; then
       copies=1
       threads=$th_per_core
+      if [ $stack_size -le 122880 ];then
+        echo -e $stack_msg
+      fi
     fi
     if [ "$i" = "fpspeed" ]; then
       copies=1
       threads=$th_per_core
+      if [ $stack_size -le 122880 ];then
+        echo -e $stack_msg
+      fi
     fi
     
     echo -e "Running $i with CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
