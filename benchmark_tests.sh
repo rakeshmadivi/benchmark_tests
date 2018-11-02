@@ -378,8 +378,10 @@ function redis_tests()
       echo -e "\nError: redis-benchmark is not installed. Please install and re-run.\n"
     else
       outfile=redis_benchmark.txt
+      outfile2=redis_benchmark_nopinnin.txt
       rm -rf $outfile
       echo -e "`lscpu | grep Model`" >> $outfile
+      echo -e "`lscpu | grep Model`" >> $outfile2
       
       redis_pid=`pidof redis-server`
       redis_cpu=`ps -o psr ${redis_pid}|tail -n1`
@@ -397,6 +399,16 @@ function redis_tests()
           taskset -c ${other_cpus} redis-benchmark -n $req -c $par_c -t get,set -q >> $outfile
           en=$SECONDS
           echo -e "Elapsed Time: $((en-st)) Seconds." >> $outfile
+          
+          # NO PINNING 
+          echo -e "\nRunning: ==== ${par_c}C_${req}N for get,set operations ===="
+          echo -e "\n==== ${par_c}C_${req}N ====" >> $outfile2
+
+          st=$SECONDS
+          redis-benchmark -n $req -c $par_c -t get,set -q >> $outfile2
+          en=$SECONDS
+          echo -e "Elapsed Time: $((en-st)) Seconds." >> $outfile2
+          
         done
       done
      fi
