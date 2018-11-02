@@ -380,15 +380,19 @@ function redis_tests()
       outfile=redis_benchmark.txt
       rm -rf $outfile
       echo -e "`lscpu | grep Model`" >> $outfile
-      for((req=1000000; req<=100000000; req+=50000000))
+      
+      redis_cpu=`pidof redis-server`
+      other_cpus="`echo $(numactl --hardware | grep cpus | grep -v "${redis_cpu}" | cut -f4- -d' ')|sed -r 's/[ ]/,/g'`"
+      echo -e "Redis server running on: ${redis_cpu} and redis-benchmark will run on: ${other_cpus}\n"
+      for((req=2000000; req<=10000000; req+=2000000))
       do
-        for((par_c=10; par_c<=$ncpus; par_c+=10))
+        for((par_c=4; par_c<=$ncpus; par_c+=4))
         do
           echo -e "\nRunning: ==== ${par_c}C_${req}N ===="
           echo -e "\n==== ${par_c}C_${req}N ====" >> $outfile
 
           st=$SECONDS
-          redis-benchmark -n $req -c $par_c -q >> $outfile
+          taskset -c ${other_cpus} redis-benchmark -n $req -c $par_c -q >> $outfile
           en=$SECONDS
           echo -e "Elapsed Time: $((en-st)) Seconds." >> $outfile
         done
