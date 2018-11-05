@@ -420,8 +420,11 @@ function redis_tests()
 # SPEC
 function speccpu_tests()
 {
-  speccpu_home=$HOME/spec2017_install/
-  cfgfile=$1
+  echo -e "Please enter SPECCPU-2017 Installed Location(Full path): "
+  read speccpu_home #=$HOME/spec2017_install/
+  echo -e "Enter config  file name: "
+  read cfgfile
+  #=$1
   copies=$ncpus
   threads=1
   
@@ -481,6 +484,51 @@ function specjbb_tests()
       sudo ./run_multi.sh
     fi
   fi
+}
+
+function start_power_collection()
+{
+  outfile=stress_ng_power.txt
+  statfile=stress.status
+  collectstatfile=collect.status
+  collectlog=ngcollect.log
+  
+  while true
+  do
+    timenow=`date +"%d-%b-%Y %H:%M:%S"`
+    echo -e "${timenow} Collecting..." >> $collectlog
+    date >> $outfile
+    sudo ipmitool sdr list | grep "Watts" >> $outfile
+    if [ "`cat $statfile`" = "STOP" ] ;then
+      echo -e "Got STOP Command...\nSTOPPING power collection...\n"
+      exit
+    fi
+  done
+}
+
+function stress_tests()
+{
+  outfile=stress_ng_power.txt
+  statfile=stress.status
+  collectstatfile=collect.status
+  
+  mv $outfile old.${outfile}
+  
+  ncpus=`nproc`
+  
+  for((load=10;load<=100;load+=10))
+  do
+    echo -e "STRESS_NG ${load}% LOAD STARTED at `date`" >> $outfile
+    stress-ng -c $ncpus -l $load >> $outfile
+    echo -e "STRESS_NG ${load}% LOAD COMPLETED at `date`" >> $outfile
+
+    # Sending 'STOP' command to stop collection
+    if [ "${load}" = "100" ] ;then
+      echo -e "Done STRESS_NG TESTS.\n"
+      echo -e "STOP" > $statfile
+    fi
+  done
+  
 }
 
 function install()
