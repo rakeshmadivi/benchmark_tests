@@ -508,26 +508,38 @@ function start_power_collection()
 
 function stress_tests()
 {
-  outfile=stress_ng_power.txt
-  statfile=stress.status
-  collectstatfile=collect.status
-  
-  mv $outfile old.${outfile}
-  
-  ncpus=`nproc`
-  
-  for((load=10;load<=100;load+=10))
-  do
-    echo -e "STRESS_NG ${load}% LOAD STARTED at `date`" >> $outfile
-    stress-ng -c $ncpus -l $load >> $outfile
-    echo -e "STRESS_NG ${load}% LOAD COMPLETED at `date`" >> $outfile
+  which stress-ng 2>/dev/null 
+  if [ "$?" = "0" ];then
+    outfile=stress_ng_power.txt
+    statfile=stress.status
+    collectstatfile=collect.status
 
-    # Sending 'STOP' command to stop collection
-    if [ "${load}" = "100" ] ;then
-      echo -e "Done STRESS_NG TESTS.\n"
-      echo -e "STOP" > $statfile
+    rm -rf $statfile
+    if[ -f "${PWD}/$outfile" ];then
+      echo -e "Old result is existing, moving to: old.${outfile}\n"
     fi
-  done
+
+    ncpus=`nproc`
+
+    echo -e "Starting POWER COLLECTION...\n"
+    start_power_collection &
+
+    for((load=10;load<=100;load+=10))
+    do
+      echo -e "Running CPU LOAD of: ${load}"
+      echo -e "STRESS_NG ${load}% LOAD STARTED at `date`" >> $outfile
+      stress-ng -c $ncpus -l $load >> $outfile
+      echo -e "STRESS_NG ${load}% LOAD COMPLETED at `date`" >> $outfile
+
+      # Sending 'STOP' command to stop collection
+      if [ "${load}" = "100" ] ;then
+        echo -e "Done STRESS_NG TESTS.\n"
+        echo -e "STOP" > $statfile
+      fi
+    done
+  else
+    echo -e "ERROR: stress-ng is not installed.\nPlease install stress-ng and re-run.\n"
+  fi
   
 }
 
