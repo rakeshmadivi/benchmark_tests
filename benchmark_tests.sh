@@ -478,10 +478,12 @@ function specjbb_tests()
     exit
   else
     cd $specjbb_home
-    echo -e "Are you sure configuration parameters are properly set?"
+    echo -e "Are you sure configuration parameters are properly set?(y/n)"
     read op
-    if [ "op" = "y" ];then
+    if [ "$op" = "y" ];then
       sudo ./run_multi.sh
+    elif [ "$op" = "n" ];then
+      echo -e "Please edit configuration settings and re-run.\n"
     fi
   fi
 }
@@ -506,6 +508,12 @@ function start_power_collection()
   done
 }
 
+function install_stressng()
+{
+  echo -e "Installing stress-ng...\n"
+  sudo apt-get install stress-ng
+}
+
 function stress_tests()
 {
   which stress-ng 2>/dev/null 
@@ -518,7 +526,7 @@ function stress_tests()
     if[ -f "${PWD}/$outfile" ];then
       echo -e "Old result is existing, moving to: old.${outfile}\n"
     fi
-
+    
     ncpus=`nproc`
 
     echo -e "Starting POWER COLLECTION...\n"
@@ -559,24 +567,60 @@ function install()
   # -------------------------------
   install_wrk
   install_nginx
+  
+  # INSTALL STRESS-NG
+  install_stressng
 }
 
-speccpu_tests
-specjbb_tests
+functions tests()
+{
+  #speccpu_tests
+  #specjbb_tests
 
-# SYSBENCH TESTS
-#---------------
-# Before running Sysbench test
-# create a user in mysql and use legacy password authentication method with following command
-# Ex: CREATE USER 'username’@‘localhost’ IDENTIFIED WITH mysql_native_password BY ‘password’;
+  # SYSBENCH TESTS
+  #---------------
+  # Before running Sysbench test
+  # create a user in mysql and use legacy password authentication method with following command
+  # Ex: CREATE USER 'username’@‘localhost’ IDENTIFIED WITH mysql_native_password BY ‘password’;
 
-#new_sysbench_tests
+  #new_sysbench_tests
 
-# NGINX TESTS
-#nginx_tests
+  # NGINX TESTS
+  #nginx_tests
 
-# STREAM TESTS
-#stream_tests
+  # STREAM TESTS
+  #stream_tests
 
-# REDIS TESTS
-redis_tests
+  # REDIS TESTS
+  redis_tests
+  
+  # STRESS-NG
+  #stress_tests
+  
+  # APPEND TEST NAMES 
+  test_names=(specpu_tests specjcc_tests new_sysbench_tests nginx_tests stream_tests redis_tests stress_tests )
+  total_tests=${#test_names[*]}
+  for i in $(seq 0 $(( total_tests - 1)) )
+  do
+    echo $i ${arr[$i]}      
+  done
+  
+  echo "Enter the test numbers you want to perform:\n"
+  read -a A
+  
+  for i in ${A[*]}
+  do
+    if [ $i -lt $total_tests ];then
+      echo "Performing: ${test_names[$i]}"
+      ${test_names[$i]}
+    else
+      echo "  Invalid Test Index.\n"
+    fi
+  done  
+}
+
+# INSTALL REQUIRED PACKAGES
+#install
+
+# PERFORM TESTS
+tests
