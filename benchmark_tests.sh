@@ -422,7 +422,7 @@ function speccpu_tests()
   read speccpu_home #=$HOME/spec2017_install/
   
   echo Sourcing SPEC Environment...
-  cd speccpu_home && source shrc
+  cd $speccpu_home && source shrc
   
   echo -e "Enter config  file name: "
   read cfgfile
@@ -447,29 +447,28 @@ function speccpu_tests()
   for i in "${spectests[@]}"
   do
     
-    if [ "$i" = "intspeed" ]; then
+    if [ "$i" = "intspeed" ] || [ "$i" = "fpspeed" ]; then
       copies=1
-      threads=$th_per_core
-      if [ $stack_size -le 122880 ];then
-        echo -e $stack_msg
-      fi               
+      threads=$th_per_core                   
     fi
     
-    if [ "$i" = "fpspeed" ]; then
-      copies=1
-      threads=$th_per_core
-      if [ $stack_size -le 122880 ];then
-        echo -e $stack_msg
-      fi            
+    if [ "$i" = "intrate" ] || [ "$i" = "fprate" ]; then
+      copies=$ncpus
+      threads=1           
     fi
     
-    echo -e "Running $i with CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
+    echo -e "RUN: $i CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
     sleep 3
-    echo RUN:${i} COPIES:${copies} THREADS:${threads}
-      st=$SECONDS
-        #time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
-      en=$SECONDS
-      echo -e "${i} : Elapsed time - $((en-st)) Seconds."          
+    st=$SECONDS
+      if [ "$i" = "intspeed" ] || [ "$i" = "fpspeed" ]; then
+        pin=`cat /sys/devices/system/cpu/cpu1/topology/thread_sibling_list`
+        time numactl -C ${pin} runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
+        time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
+      else
+        time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
+      fi
+    en=$SECONDS
+    echo -e "${i} : Elapsed time - $((en-st)) Seconds."          
   done
   }
 
@@ -597,17 +596,17 @@ function tests()
   #stream_tests
 
   # REDIS TESTS
-  redis_tests
+  #redis_tests
   
   # STRESS-NG
   #stress_tests
   
   # APPEND TEST NAMES 
-  test_names=(specpu_tests specjcc_tests new_sysbench_tests nginx_tests stream_tests redis_tests stress_tests )
+  test_names=(speccpu_tests specjcc_tests new_sysbench_tests nginx_tests stream_tests redis_tests stress_tests )
   total_tests=${#test_names[*]}
   for i in $(seq 0 $(( total_tests - 1)) )
   do
-    echo $i ${arr[$i]}      
+    echo $i ${test_names[$i]}      
   done
   
   echo "Enter the test numbers you want to perform:\n"
