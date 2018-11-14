@@ -461,7 +461,7 @@ function speccpu_tests()
     sleep 3
     st=$SECONDS
       if [ "$i" = "intspeed" ] || [ "$i" = "fpspeed" ]; then
-        pin=`cat /sys/devices/system/cpu/cpu1/topology/thread_sibling_list`
+        pin=`cat /sys/devices/system/cpu/cpu1/topology/thread_siblings_list`
         time numactl -C ${pin} runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
         time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
       else
