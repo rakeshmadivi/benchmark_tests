@@ -577,7 +577,7 @@ function install()
   install_stressng
 }
 
-functions tests()
+function tests()
 {
   #speccpu_tests
   #specjbb_tests
