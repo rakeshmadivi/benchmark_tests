@@ -528,7 +528,7 @@ function stress_tests()
     collectstatfile=collect.status
 
     rm -rf $statfile
-    if[ -f "${PWD}/$outfile" ];then
+    if [ -f "${PWD}/$outfile" ];then
       echo -e "Old result is existing, moving to: old.${outfile}\n"
     fi
     
