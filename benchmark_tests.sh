@@ -319,14 +319,14 @@ function tinymembench_tests()
     outfile=tinymembench_benchmark.txt
     rm -rf $outfile
 
-    if [ ! -d "$HOME/tinymembench" ];then
-      echo "\n'tinymembech' folder could not found in $HOME folder... Downloading tinymembench...\n"
+    if [ ! -d "tinymembench" ];then
+      echo "\n'tinymembech' folder could not found in current working directory... Downloading tinymembench...\n"
       git clone --recursive https://github.com/ssvb/tinymembench
       export tinymem_loc=$PWD/tinymembench
       cd $tinymem_loc
       make -j`nproc`
     else
-      cd $HOME/tinymembench
+      cd tinymembench
     fi
     st=$SECONDS
     ./tinymembench >> $outfile
@@ -343,23 +343,21 @@ function stream_tests()
   read op
   
   if [ "$op" = "y" ];then
-    location=`locate multi-streaam-scaling`
-    if [ "$location" != "" ];then
-      echo -e "\nError: multi-stream-scaling is not found. Please install and re-run.\n"
-      # git clone --recursive https://github.com/jainmjo/stream-scaling.git
-      # cd stream-scaling
-    else
-      outfile=stream_scaling_benchmark.txt
-      iters=4
-      testname=stream_scale_${iters}iters
-      $location $iters  $testname
-      ./multi-averager $testname > stream.txt
-      if [ "`which gnuplot`" != "" ];then
-        echo -e "Plotting Triad..."
-        gnuplot stream-plot
-        echo -e "\nNOTE: If you want to plot for 'Scale', please edit find parameter to 'Scale' in stream-graph.py and re-run 'multi-averager'\n"
-      fi
-
+    #location=`locate multi-streaam-scaling`
+    if [ ! -d "stream-scaling" ];then
+      echo -e "\nStream-scaling Folder not found in current working path.\nDownloading stream-scaling....\n"
+      git clone --recursive https://github.com/jainmjo/stream-scaling.git
+    fi
+    cd stream-scaling
+    outfile=stream_scaling_benchmark.txt
+    iters=4
+    testname=stream_scale_${iters}iters
+    ./multi-stream-scaling $iters  $testname
+    ./multi-averager $testname > stream.txt
+    if [ "`which gnuplot`" != "" ];then
+      echo -e "Plotting Triad..."
+      gnuplot stream-plot
+      echo -e "\nNOTE: If you want to plot for 'Scale', please edit find parameter to 'Scale' in stream-graph.py and re-run 'multi-averager'\n"
     fi
   else
     echo -e "STREAM TEST Cancelled by user...\n"
@@ -422,6 +420,10 @@ function speccpu_tests()
 {
   echo -e "Please enter SPECCPU-2017 Installed Location(Full path): "
   read speccpu_home #=$HOME/spec2017_install/
+  
+  echo Sourcing SPEC Environment...
+  cd speccpu_home && source shrc
+  
   echo -e "Enter config  file name: "
   read cfgfile
   #=$1
@@ -430,6 +432,12 @@ function speccpu_tests()
   
   stack_size=`ulimit -s`
   stack_msg="\nNOTE: Stack Size is lesser than required limit. You might want to increase limit else you might experience cam4_s failure.\n"
+  
+  echo -e "Changing soft limit..."
+  ulimit -S -s 512000
+  
+  echo ULIMIT: `ulimit -s`
+  
   echo -e "\nUSING: $cfgfile\n"
   cd $speccpu_home/
   source $speccpu_home/shrc
@@ -444,27 +452,24 @@ function speccpu_tests()
       threads=$th_per_core
       if [ $stack_size -le 122880 ];then
         echo -e $stack_msg
-      fi
+      fi               
     fi
+    
     if [ "$i" = "fpspeed" ]; then
       copies=1
       threads=$th_per_core
       if [ $stack_size -le 122880 ];then
         echo -e $stack_msg
-      fi
+      fi            
     fi
     
     echo -e "Running $i with CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
     sleep 3
-    which runcpu
-    if [ "$?" = "0" ];then
+    echo RUN:${i} COPIES:${copies} THREADS:${threads}
       st=$SECONDS
-        time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
+        #time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
       en=$SECONDS
-      echo -e "${i} : Elapsed time - $((en-st)) Seconds."
-    else
-      echo -e "ERROR:  runcpu command not found. Please install/source required script to continue with tests.\n"
-    fi
+      echo -e "${i} : Elapsed time - $((en-st)) Seconds."          
   done
   }
 
