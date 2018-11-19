@@ -196,6 +196,8 @@ function new_sysbench_tests()
 
       echo -e "\nRunning SQL Benchmark..."
       outfile=sysbench_mysql.txt
+      outfile2=sysbench_mysql_pinned.txt
+      
       rm -rf $outfile
 
       ntables=10
@@ -203,14 +205,43 @@ function new_sysbench_tests()
       echo "Preparing Database for benchmarking..."
       echo -e "Creating $ntables ..."
       sysbench oltp_read_write --db-driver=mysql --mysql-user=rakesh --mysql-password=rakesh123 --tables=$ntables --table-size=1000000 --threads=$ntables prepare
-
-      st=$SECONDS
+      
       # Insert only
       # sysbench /usr/share/sysbench/oltp_insert.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310 --report-interval=2 --tables=8 --threads=8 --time=60 run
 
       # Write only
       # sysbench /usr/share/sysbench/oltp_write_only.lua --db-driver=mysql --mysql-user=root --mysql-password='' --mysql-host=127.0.0.1 --mysql-port=3310  --report-interval=2 --tables=8 --threads=8 --time=60 run
+      
+      steps=$((ncpus/4))
+      thpercore=$(echo `lscpu| grep "per core"|cut -f2 -d ':'`)
 
+
+      # -------------- PROCESSOR PINNING
+      export pinlist=""
+      st=$SECONDS
+
+      for((th=${steps}; th<=$ncpus; th+=${steps}))
+      do
+        echo "Running SQL Read only Benchmark with TH: $th using processor pinning..."
+        cpusreq=$((th/2))
+        for((i=1;i<=$cpusreq;i++))
+        do
+
+                if [ "$pinlist" != "" ];then
+                        export pinlist=${pinlist},`cat /sys/devices/system/cpu/cpu${i}/topology/thread_siblings_list`
+                else
+                        export pinlist=`cat /sys/devices/system/cpu/cpu${i}/topology/thread_siblings_list`
+                fi
+        done
+        echo FOR:$th  PINLIST: $pinlist
+        sleep 2
+        numactl -C $pinlist --localalloc sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run >> $outfile2
+      done
+      en=$SECONDS
+      echo $((en-st)) >> $outfile2
+      
+      #----------- NO PINNING
+      st=$SECONDS
       for((th=2; th<=$ncpus; th+=2))
       do
         echo "Running SQL Read only Benchmark with TH: $th"
@@ -559,21 +590,50 @@ function install()
 {
   # INSTALL MYSQL
   # -------------
-  install_mysql
+  #install_mysql
 
   # INSTALL SYSBENCH
   # -------------
   #install_sysbench
   # OR
-  new_sysbench_quick_install
+  #new_sysbench_quick_install
 
   # INSTALL WRK & NGINX; TEST NGINX
   # -------------------------------
-  install_wrk
-  install_nginx
+  #install_wrk
+  #install_nginx
   
   # INSTALL STRESS-NG
-  install_stressng
+  #install_stressng
+  
+  echo "You want to continue with installation?(y/n)"
+  read conf
+
+  if [ "$conf" = "y" ];then
+
+    # APPEND INSTALL FUNCTION NAMES
+    test_names=(install_mysql new_sysbench_quick_install install_wrk install_nginx install_stressng )
+    total_tests=${#test_names[*]}
+    for i in $(seq 0 $(( total_tests - 1)) )
+    do
+      echo $i ${test_names[$i]}
+    done
+
+    echo "Enter the test numbers you want to perform:\n"
+    read -a A
+
+    for i in ${A[*]}
+    do
+      if [ $i -lt $total_tests ];then
+        echo "Installing: ${test_names[$i]}"
+        ${test_names[$i]}
+      else
+        echo "  Invalid Test Index.\n"
+      fi
+    done
+  else
+      echo "Installation skipped by the user.\n"
+  fi
 }
 
 function tests()
