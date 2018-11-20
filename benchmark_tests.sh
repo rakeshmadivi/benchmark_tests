@@ -227,11 +227,11 @@ function new_sysbench_tests()
         for((i=1;i<=$cpusreq;i++))
         do
 
-                if [ "$pinlist" != "" ];then
-                        export pinlist=${pinlist},`cat /sys/devices/system/cpu/cpu${i}/topology/thread_siblings_list`
-                else
-                        export pinlist=`cat /sys/devices/system/cpu/cpu${i}/topology/thread_siblings_list`
-                fi
+          if [ "$pinlist" != "" ];then
+            export pinlist=${pinlist},`cat /sys/devices/system/cpu/cpu${i}/topology/thread_siblings_list`
+          else
+            export pinlist=`cat /sys/devices/system/cpu/cpu${i}/topology/thread_siblings_list`
+          fi
         done
         echo FOR:$th  PINLIST: $pinlist
         sleep 2
@@ -242,7 +242,7 @@ function new_sysbench_tests()
       
       #----------- NO PINNING
       st=$SECONDS
-      for((th=2; th<=$ncpus; th+=2))
+      for((th=$steps; th<=$ncpus; th+=$steps))
       do
         echo "Running SQL Read only Benchmark with TH: $th"
         sysbench oltp_read_only --threads=$th --mysql-user=rakesh --mysql-password=rakesh123 --tables=10 --table-size=1000000 --histogram=on --time=300 run >> $outfile
@@ -417,11 +417,16 @@ function redis_tests()
       other_cpus="`echo $(numactl --hardware | grep cpus | grep -v "${redis_cpu}" | cut -f4- -d' ')|sed -r 's/[ ]/,/g'`"
       echo -e "Redis server running on: ${redis_cpu} and redis-benchmark will run on: ${other_cpus}\n"
       sleep 2
-      for((req=2000000; req<=10000000; req+=2000000))
+      totreq=10000000
+      reqstep=$((totreq/4))
+      
+      cpustep=$((ncpus/4))
+      
+      for((req=$reqstep; req<=$totreq; req+=$reqstep))
       do
-        for((par_c=4; par_c<=$ncpus; par_c+=4))
+        for((par_c=$cpustep; par_c<=$ncpus; par_c+=$cpustep))
         do
-          echo -e "\nRunning: ==== ${par_c}C_${req}N for get,set operations ===="
+          echo -e "\nRunning: ==== ${par_c}C_${req}N for get,set operations with pinning ===="
           echo -e "\n==== ${par_c}C_${req}N ====" >> $outfile
 
           st=$SECONDS
@@ -684,7 +689,7 @@ function tests()
 }
 
 # INSTALL REQUIRED PACKAGES
-#install
+install
 
 # PERFORM TESTS
 tests
