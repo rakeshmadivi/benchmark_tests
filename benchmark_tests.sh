@@ -3,6 +3,55 @@
 # GLOBAL VALUES
 ncpus=`nproc`
 th_per_core=$(echo `lscpu | grep Thread|cut -f2 -d':'`)
+
+powerstatfile=power_collect.status
+POWERGET=""
+function start_power_collection()
+{
+  outfile=stress_ng_power.txt
+  #statfile=
+  collectstatfile=collect.status
+  collectlog=ngcollect.log
+  
+  sudo ipmitool sdr list | grep "Watts" 2>&1 > /dev/null
+  if [ "$?" = "1" ];then
+    #export POWERGET=AMPS
+    
+    while true
+    do
+      timenow=`date +"%d-%b-%Y %H:%M:%S"`
+      echo -e "${timenow} Collecting..." >> $collectlog
+      date >> $outfile
+      sudo ipmitool sdr list | egrep "Volts|Amps" >> $outfile
+      
+      if [ -f "$powerstatfile" ];then
+        if [ "`cat $powerstatfile`" = "STOP" ] ;then
+          echo -e "Got STOP Command...\nSTOPPING power collection...\n"
+          exit
+        fi
+      else
+        echo -en "\rCollecting power utilization..."
+      fi
+    done
+  else
+    #export POWERGET=WATTS
+    while true
+    do
+      timenow=`date +"%d-%b-%Y %H:%M:%S"`
+      echo -e "${timenow} Collecting..." >> $collectlog
+      date >> $outfile
+      sudo ipmitool sdr list | grep "Watts" >> $outfile
+      if [ "`cat $powerstatfile`" = "STOP" ] ;then
+        echo -e "Got STOP Command...\nSTOPPING power collection...\n"
+        exit
+      fi
+    done
+  fi
+  
+  
+    
+}
+
 function install_mysql()
 {
   #echo -e "Install MySQL?(y/n):\n"
@@ -528,26 +577,6 @@ function specjbb_tests()
   fi
 }
 
-function start_power_collection()
-{
-  outfile=stress_ng_power.txt
-  statfile=stress.status
-  collectstatfile=collect.status
-  collectlog=ngcollect.log
-  
-  while true
-  do
-    timenow=`date +"%d-%b-%Y %H:%M:%S"`
-    echo -e "${timenow} Collecting..." >> $collectlog
-    date >> $outfile
-    sudo ipmitool sdr list | grep "Watts" >> $outfile
-    if [ "`cat $statfile`" = "STOP" ] ;then
-      echo -e "Got STOP Command...\nSTOPPING power collection...\n"
-      exit
-    fi
-  done
-}
-
 function install_stressng()
 {
   echo -e "Installing stress-ng...\n"
@@ -559,10 +588,12 @@ function stress_tests()
   which stress-ng 2>/dev/null 
   if [ "$?" = "0" ];then
     outfile=stress_ng_power.txt
-    statfile=stress.status
+    #statfile=power_collect.status
     collectstatfile=collect.status
 
-    rm -rf $statfile
+    # Remove Existing power collection status file
+    rm -rf $powerstatfile
+    
     if [ -f "${PWD}/$outfile" ];then
       echo -e "Old result is existing, moving to: old.${outfile}\n"
     fi
@@ -582,7 +613,7 @@ function stress_tests()
       # Sending 'STOP' command to stop collection
       if [ "${load}" = "100" ] ;then
         echo -e "Done STRESS_NG TESTS.\n"
-        echo -e "STOP" > $statfile
+        echo -e "STOP" > $powerstatfile
       fi
     done
   else
