@@ -8,7 +8,7 @@ powerstatfile=power_collect.status
 POWERGET=""
 function start_power_collection()
 {
-  outfile=stress_ng_power.txt
+  outfile=power_stats.txt
   #statfile=
   collectstatfile=collect.status
   collectlog=ngcollect.log
@@ -16,6 +16,7 @@ function start_power_collection()
   sudo ipmitool sdr list | grep "Watts" 2>&1 > /dev/null
   if [ "$?" = "1" ];then
     #export POWERGET=AMPS
+    echo -e "Collecting Watts..."
     
     while true
     do
@@ -35,6 +36,7 @@ function start_power_collection()
     done
   else
     #export POWERGET=WATTS
+    echo -e "Collecting Volts and Amps..."
     while true
     do
       timenow=`date +"%d-%b-%Y %H:%M:%S"`
