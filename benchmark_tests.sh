@@ -31,7 +31,7 @@ function start_power_collection()
           exit
         fi
       else
-        echo -en "\rCollecting power utilization..."
+        echo -en "\rCollecting Power Utilization (Volts,Amps)..."
       fi
     done
   else
@@ -43,9 +43,14 @@ function start_power_collection()
       echo -e "${timenow} Collecting..." >> $collectlog
       date >> $outfile
       sudo ipmitool sdr list | grep "Watts" >> $outfile
-      if [ "`cat $powerstatfile`" = "STOP" ] ;then
-        echo -e "Got STOP Command...\nSTOPPING power collection...\n"
-        exit
+      
+      if [ -f "$powerstatfile" ];then
+        if [ "`cat $powerstatfile`" = "STOP" ] ;then
+          echo -e "Got STOP Command...\nSTOPPING power collection...\n"
+          exit
+        fi
+      else
+        echo -en "\rCollecting Power Utilization (Watts)..."
       fi
     done
   fi
