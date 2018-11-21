@@ -9,7 +9,11 @@ POWERGET=""
 function start_power_collection()
 {
   outfile=power_stats.txt
-  #statfile=
+  if [ -f "$powerstatfile" ];then
+    echo Removing Existing power status file...
+    rm -rf $powerstatfile
+  fi
+  
   collectstatfile=collect.status
   collectlog=ngcollect.log
   
@@ -33,6 +37,9 @@ function start_power_collection()
       else
         echo -en "\rCollecting Power Utilization (Volts,Amps)..."
       fi
+      
+      sleep 30
+      
     done
   else
     #export POWERGET=WATTS
@@ -52,11 +59,11 @@ function start_power_collection()
       else
         echo -en "\rCollecting Power Utilization (Watts)..."
       fi
+      
+      sleep 30
+      
     done
-  fi
-  
-  
-    
+  fi    
 }
 
 function install_mysql()
