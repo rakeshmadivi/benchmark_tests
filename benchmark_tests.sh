@@ -718,7 +718,7 @@ function tests()
   #stress_tests
   
   # APPEND TEST NAMES 
-  test_names=(speccpu_tests specjcc_tests new_sysbench_tests nginx_tests stream_tests redis_tests stress_tests )
+  test_names=(speccpu_tests specjbb_tests new_sysbench_tests nginx_tests stream_tests redis_tests stress_tests )
   total_tests=${#test_names[*]}
   for i in $(seq 0 $(( total_tests - 1)) )
   do
