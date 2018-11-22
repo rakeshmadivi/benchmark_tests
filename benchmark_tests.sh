@@ -584,7 +584,13 @@ function specjbb_tests()
     echo -e "Are you sure configuration parameters are properly set?(y/n)"
     read op
     if [ "$op" = "y" ];then
-      sudo ./run_multi.sh
+      echo -e "Starting Power Collection..."
+      start_power_collection &
+
+      echo -e "Starting SPECJBB ...."
+      time sudo ./run_multi.sh
+
+      echo STOP > $powerstatfile
     elif [ "$op" = "n" ];then
       echo -e "Please edit configuration settings and re-run.\n"
     fi
