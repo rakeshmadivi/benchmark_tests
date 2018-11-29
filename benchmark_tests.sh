@@ -532,7 +532,7 @@ function speccpu_tests()
   stack_size=`ulimit -s`
   stack_msg="\nNOTE: Stack Size is lesser than required limit. You might want to increase limit else you might experience cam4_s failure.\n"
   
-  echo -e "Changing soft limit..."
+  echo -e "Changing STACKSIZE soft limit..."
   ulimit -S -s 512000
   
   echo ULIMIT: `ulimit -s`
@@ -542,28 +542,28 @@ function speccpu_tests()
   source $speccpu_home/shrc
   cd config
   
-  declare -a spectests=("intrate" "intspeed" "fprate" "fpspeed")
+  declare -a spectests=("intrate" "fprate" "intspeed" "fpspeed")
   for i in "${spectests[@]}"
-  do
-    
-    if [ "$i" = "intspeed" ] || [ "$i" = "fpspeed" ]; then
-      copies=1
-      threads=$th_per_core                   
-    fi
-    
-    if [ "$i" = "intrate" ] || [ "$i" = "fprate" ]; then
-      copies=$ncpus
-      threads=1           
-    fi
-    
-    echo -e "RUN: $i CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
+  do    
     sleep 3
     st=$SECONDS
       if [ "$i" = "intspeed" ] || [ "$i" = "fpspeed" ]; then
+        copies=1
+        threads=$th_per_core
+        
+        echo -e "RUN: $i CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
+        
         pin=`cat /sys/devices/system/cpu/cpu1/topology/thread_siblings_list`
-        time numactl -C ${pin} runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
+        echo -e "Running $i with PINNING: ${pin}"
+        time numactl -C ${pin} -l runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
+        
+        echo -e "Running $i with NO_PINNING"
         time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
+      
       else
+        copies=$ncpus
+        threads=1
+        echo -e "RUN: $i CONFIG: $cfgfile \nCOPIES: $copies THREADS: $threads"
         time runcpu -c $cfgfile --tune=base --copies=$copies --threads=$threads --reportable $i
       fi
     en=$SECONDS
