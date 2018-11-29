@@ -520,6 +520,7 @@ function speccpu_tests()
   default_loc=${HOME}/spec2017
   echo -e "SPEC HOME Location: $default_loc \nIs above location correct?(y/n): "
   read confirm
+  speccpu_home=""
   if [ "$confirm" = "y" ];then
     speccpu_home=$default_loc
   else
