@@ -74,3 +74,16 @@ function test_cmd()
   --numjobs=4 --rw=randwrite --blocksize=4k --group_reportin
 }
 
+function test_fio()
+{
+  # Random read-write perforamance
+  fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --filename=test --bs=4k --iodepth=64 --size=4G --readwrite=randrw --rwmixread=75
+  
+  # Random read
+  fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --filename=test --bs=4k --iodepth=64 --size=4G --readwrite=randread
+  
+  # Random write
+  fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --filename=test --bs=4k --iodepth=64 --size=4G --readwrite=randwrite
+  
+  
+}
