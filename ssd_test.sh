@@ -84,6 +84,79 @@ function test_fio()
   
   # Random write
   fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --filename=test --bs=4k --iodepth=64 --size=4G --readwrite=randwrite
+    
+}
+
+function hdparam_test()
+{
+  # Test using hdparam direct read; This measurement is an indication of how fast the drive can sustain sequential data reads under Linux, without any filesystem overhead.
+  sudo hdparm -t /dev/sda2
   
+  # Cached Read; This displays the speed of reading directly from the Linux buffer cache without disk access.
+  sudo hdparm -T /dev/sda2
+}
+
+function dd_test()
+{
+  # WRITE SPEED
+  sync; dd if=/dev/zero of=tempfile bs=1M count=1024; sync
+  
+  # READ SPEED
+  dd if=tempfile of=/dev/null bs=1M count=1024
+}
+
+function ssd_iops()
+{
+  # For ActiveRange 0:100
+    # purge
+    # Run Workload Independent Pre-conditioning
+      #**********************************************************************************************************#
+      # Set and record test conditions
+      # Disable device volatile write cache, OIO/Threads, Thread_count, Data pattern: random,operator
+      # Run sequential WIPC with: 2X User capacity @128KiB SEQ Write, writing to entire LBA without restrictions.
+      #**********************************************************************************************************#
+      
+      # Test Conditions
+      # Disable volatile cache using direct=1, non-buffered io
+      DIRECT=1
+      
+      # thread_count
+      NUMJOBS=4
+      
+      # Data Pattern: random, operator
+      RW=write  # Sequential read write
+      IOENGINE=libaio
+            
+      # Capacity 2X, BlockSize=128KiB, sequential write file_service_type=sequential
+      size=$((2*$mb_memory))m # ?, can also be represented in %.
+      bs=128k
+      #file_service_type=sequential
+      
+      # READ/WRITE Mix % : Eg. --rwmixread=90 i.e 90% Read, 10% Write
+      # RWMIXREAD=90
+      
+           
+      # RUNNING WIPC
+      fio --name=WIPC --direct=${DIRECT} --numjobs=${NUMJOBS} --size=${size} --bs=${bs} --rw=${RW} --ioengine=${IOENGINE} 
+      
+           
+    # Run Workload Dependent Pre-conditioning and Test Stimulus
+      #**********************************************************************************************************#
+      # Set and record test conditions
+      # Disable device volatile write cache, OIO/Threads, Thread_count, Data pattern: random,operator (same as previous step)
+      
+      # Run WDPC until steady state is achieved/ MAX 25 rounds
+        # For (R/W Mix % = 100/0, 95/5, 65/35, 50/50, 35/65, 5/95, 0/100)
+          # For (Block Size = 1024KiB, 128KiB, 64KiB, 32KiB, 16KiB, 8KiB, 4KiB, 0.5KiB)
+            # Execute RND IO, per (R/W Mix %, Block Size), for 1 minute 
+              # Record Ave IOPS (R/W Mix%, Block Size)
+              # Use IOPS (R/W Mix% = 0/100, Block Size = 4KiB) to detect Steady State. 
+              # If Steady State is not reached by Round x=25, then the Test Operator may either continue running the test until Steady State is reached, or may stop the test at Round x. The Measurement Window is defined as Round x-4 to Round x.
+      #**********************************************************************************************************#
+      
+      
+    # Process and Plot the accumulated rounds data 
   
 }
+
+
