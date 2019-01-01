@@ -1,0 +1,16 @@
+import numpy as np
+import random as rnd
+from pylab import *
+import sys
+s1=sys.argv[1].rstrip().split(',')
+arr=[int(elem) for elem in s1]
+#ia=[1,2,34]
+a=np.array(arr)
+#print("ARR:",arr,"NPARR:",nparr)
+print(a[1]+a[2])
+b=5*rnd.randint(10,200)*a
+print("ARRAYS:\n",a,b)
+
+m,c=polyfit(a,b,1)
+plot(a,b,'yo',a,m*a+c,'--k')
+show()

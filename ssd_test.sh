@@ -137,7 +137,7 @@ function ssd_iops()
       
            
       # RUNNING WIPC
-      fio --name=WIPC --direct=${DIRECT} --numjobs=${NUMJOBS} --size=${size} --bs=${bs} --rw=${RW} --ioengine=${IOENGINE} > WIPC_Write.txt
+      #sudo fio --name=WIPC --direct=${DIRECT} --numjobs=${NUMJOBS} --size=${size} --bs=${bs} --rw=${RW} --ioengine=${IOENGINE} > WIPC_Write.txt
       
            
     # Run Workload Dependent Pre-conditioning and Test Stimulus
@@ -153,18 +153,20 @@ function ssd_iops()
               # Use IOPS (R/W Mix% = 0/100, Block Size = 4KiB) to detect Steady State. 
               # If Steady State is not reached by Round x=25, then the Test Operator may either continue running the test until Steady State is reached, or may stop the test at Round x. The Measurement Window is defined as Round x-4 to Round x.
       #**********************************************************************************************************#
-      
+      for i in `seq 1 5`
+      do
       for rwmix in 100 95 65 50 35 5 0
       do
         for blk_size in 1024k 128k 64k 32k 16k 8k 4k 0.5k
         do
-          fio --name=WDPC --bs=${blk_size} --rwmixwrite=${rwmix} --direct=${DIRECT} --rw=randrw --runtime=1m > WDPC_${rwmix}_${blk_size}.txt
+        sudo fio --name=WDPC --bs=${blk_size} --rwmixwrite=${rwmix} --direct=${DIRECT} --rw=randrw --runtime=1s > WDPC_${rwmix}_${blk_size}_iter${i}.txt
         done
       done
-      
+      done
       
     # Process and Plot the accumulated rounds data 
   
 }
+set -x
 
-
+ssd_iops
