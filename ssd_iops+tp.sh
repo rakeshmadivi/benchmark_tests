@@ -1,12 +1,28 @@
 #!/bin/bash
-set -x
+#set -x
+
+# TESTS TO BE PERFORMED
+# 	0		1
+TESTS=("IOPS TEST" "THROUGHPUT TEST")
+
+show_tests()
+{
+	echo Possible Tests: 
+	for i in "${!TESTS[@]}"
+	do
+		echo $((i+1)) ${TESTS[$i]}
+	done
+}
 
 die() {
 	echo "Error: " $@
+	show_tests
+	
+	echo "Eg: $0 /dev/<blockdev> 1	- For IOPS Test"
 	exit 1
 }
 
-[ $# -ne 1 ] && die "Not enough arguments passed. Pass disk as an argument. eg $0 /dev/<blockdev>"
+[ $# -ne 2 ] && die "Not enough arguments passed. Pass disk and test_id as arguments. "
 
 test_file=$1
 
@@ -52,6 +68,8 @@ w100percent=iops_ss_convergence_report.csv
 # 3rd Plot
 ss_4k_plot=iops_ss_measurement_window_plot.csv
 
+# Steady State log
+sslog=steadystate.log
 # File to store intermediate Y values,bestfit slope,bestfit const,min,max,range,avg values.
 ydata_file=ydata.txt
 
@@ -59,9 +77,18 @@ ydata_file=ydata.txt
 # Work Directory
 work_dir=$PWD
 
+todotest=`if [ $2 -eq 1 ];then echo iops;elif [ $2 -eq 2 ];then echo tp;fi`_run_
+
 # Current Run Directory
-run_n=`ls -d run_* > /dev/null 2>&1 && ls -d run_* | wc -w`
-run_dir=run_$((run_n + 1))
+run_n=`ls -d ${todotest}* > /dev/null 2>&1 && ls -d ${todotest}* | wc -w`
+run_dir=${todotest}$((run_n + 1))
+
+# Get end value for renaming run folder after run according to the test.
+#endval=$(echo ${run_dir#*_})
+#trimn=$(echo ${endval}|tr -d '\n'|wc -c)
+
+# Create run directory
+echo Creating Run Directory: $run_dir
 mkdir -p $run_dir
 cd $run_dir
 
@@ -76,6 +103,13 @@ mkdir -p ${json_dir}
 # Run log
 runlog=run.log
 date > $runlog
+
+####################### THROUGHPUT FILES #############
+# FILES		0	1		2		3		4				5		6
+tp_files=(tp_data.txt tp_writes.txt tp_reads.txt tp_average.txt tp_ss_convergence.csv tp_ss_measurement_window.csv tp_measurement_window_tabular_data.csv )
+
+aggrlog=aggr_values.log
+echo "" > $aggrlog
 
 ##################################### TEST CONDITIONS/PARAMETERS SETTING ################################
 # Test Conditions
@@ -541,7 +575,7 @@ function tp_post_run()
 	logit "TP_POST_RUN" "TP_Measurement_Window_Tabular_Data"
 	# AVERAGES - TP Measurement Window Tabular Data
 	#########################
-	echo "Calculating Average of all rounds..."
+	echo "TP - Calculating Average of all rounds..."
 	w128avg=$(awk -F ',' -v ws=$window_size '{if($3 == "NA")sum+=$2;cnt+=1}END{print sum/ws}' ${tp_files[1]})
 	w1024avg=$(awk -F ',' -v ws=$window_size '{if($1 != "ROUND" && $3 != "NA")sum+=$3;cnt+=1}END{print sum/ws}' ${tp_files[1]})
 
@@ -592,7 +626,7 @@ function ssd_tp()
       # Disable device volatile write cache, OIO/Threads, Thread_count, Data pattern: random,operator
       # Run sequential WIPC with: 2X User capacity @128KiB SEQ Write, writing to entire LBA without restrictions.
       #**********************************************************************************************************#
-	[ -f ${tp_files[0]} ] && [ -f $writesfile ] && [ -f $avgfile ] && [ -f $w100percent ] && [ -f $forexcel ] && [ -f $ss_4k_plot ]
+	: '[ -f ${tp_files[0]} ] && [ -f $writesfile ] && [ -f $avgfile ] && [ -f $w100percent ] && [ -f $forexcel ] && [ -f $ss_4k_plot ]
 	if [ $? -eq 1 ]	
 	then
 		#rm -rf *.txt *.csv
@@ -608,6 +642,7 @@ function ssd_tp()
       
 	# Remove log files
 	rm -rf *.log
+	'
 
 	# THROUGHPUT SETTINGS
 	tp_rwtype=rw	# Mixed sequential reads and writes
@@ -720,10 +755,26 @@ function ssd_tp()
       
     echo Moving TP Result files...
     logit "SSD_TP" "Moving TP Result files"
-    mv tp_*.csv ${out_dir}/
+    #mv tp_*.csv ${out_dir}/
     
     echo "EXECUTION DONE."
     logit "SSD_TP" "Execution DONE."
 }
 
 
+#echo Enter the Test Number to continue: ; read opt_run
+
+if [ $2 -eq 1  ]
+then
+	ssd_iops
+	post_run
+
+	# Rename the Run folder to differentiate tests
+	#mv $run_dir iops_${run_dir::-${trimn}}_$((endval+1))
+elif [ $2 -eq 2  ]
+then
+	ssd_tp
+	
+	# Rename the Run folder to differentiate tests
+	#mv $run_dir tp_${run_dir::-${trimn}}_$((endval+1))
+fi
